@@ -1,0 +1,22 @@
+<h2>{{ poll.question }}</h2>
+
+{% if has_voted %}
+    <strong>Results</strong>
+    <ul>
+        {% for choice in poll.pollchoice_set.all %}
+            <li>{{ choice.choice }} - <strong>{{ choice.votes }}</strong></li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <form action="." method="POST">
+        {% for choice in poll.pollchoice_set.all %}
+            <input type="radio" name="choice" id="choice{{ forloop.counter }}" value="{{ choice.id }}" />
+            <label for="choice{{ forloop.counter }}">{{ choice.choice }}</label><br />
+        {% endfor %}
+        {% if user.is_authenticated %}
+            <p><input type="submit" value="Vote"></p>
+        {% else %}
+            <p><em>You must be logged in to vote!</em>
+        {% endif %}
+    </form>
+{% endif %}

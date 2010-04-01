@@ -1,0 +1,5 @@
+<h2>Latest Polls</h2>
+<ul>
+{% for poll in poll_list %}
+   <li><a href="{{ poll.get_absolute_url }}">{{ poll.question }}</a></li>
+{% endfor %} 
