@@ -37,7 +37,8 @@ class PollManager(models.Manager):
     def get_latest_polls(self, count=10):
         polls = Poll.objects.filter(
             sites__pk__in=[settings.SITE_ID,], 
-            status__in=[1,2]).order_by('-pub_date')
+            status__in=[1,2],
+            pub_date__lt=datetime.datetime.now()).order_by('-pub_date')
             
         poll_list = []
         for poll in polls:
@@ -52,7 +53,9 @@ class PollManager(models.Manager):
     def get_poll(self, poll_id):
         try:
             p = self.get(pk=poll_id, 
-                sites__pk__in=[settings.SITE_ID,])
+                sites__pk__in=[settings.SITE_ID,],
+                status__in=[1,2],
+                pub_date__lt=datetime.datetime.now())
         except:
             raise Poll.DoesNotExist
             
@@ -97,6 +100,8 @@ class Poll(models.Model):
             return True
             
     def is_expired(self):
+        if not self.pub_date:
+            return True
         if not expire_date and status [1, 2]:
             return False
         if status == 3:
