@@ -1,5 +1,6 @@
 import datetime
 from django.db import models
+from django.db.models import Sum
 from django.contrib.sites.models import Site
 from django.contrib.auth.models import User
 from django.db.models import permalink
@@ -120,6 +121,19 @@ class PollChoice(models.Model):
     choice = models.CharField(max_length=255)
     votes = models.IntegerField(editable=False, default=0)
     order = models.IntegerField(default=1)
+    
+    def percentage(self):
+        print "Percentage"
+        if not self.votes:
+            print "No Votes"
+            return 0
+            
+        total = PollChoice.objects.filter(poll=self.poll).aggregate(Sum('votes'))
+        print "Total Votes"
+        if total['votes__sum'] == 0:
+            print "No Total Votes"
+            return 0
+        return int((float(self.votes) / float(total['votes__sum'])) * 100)
     
     def __unicode__(self):
         return self.choice

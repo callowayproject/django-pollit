@@ -40,18 +40,20 @@ def detail(request, year, month, slug, template_name="pollit/detail.html"):
     else:
         has_voted = False
         
+    if has_voted:
+        return HttpResponseRedirect("%sresults/" % poll.get_absolute_url())
     # If user is logged in and has not voted
     if request.method == "POST" and request.user.is_authenticated() and not has_voted:
         try:
             selected_choice = PollChoice.objects.get(pk=request.POST['choice'])
-        except:
+        except PollChoice.DoesNotExist:
             return HttpResponseRedirect(poll.get_absolute_url())
             
         selected_choice.votes += 1
         selected_choice.save()
         
         PollChoiceData.objects.create(choice=selected_choice, user=request.user)
-        return HttpResponseRedirect(poll.get_absolute_url()) 
+        return HttpResponseRedirect("%sresults/" % poll.get_absolute_url()) 
     
     return render_to_response(template_name,
                               {'poll': poll,
