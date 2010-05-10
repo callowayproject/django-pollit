@@ -138,6 +138,9 @@ class PollChoice(models.Model):
     def __unicode__(self):
         return self.choice
         
+    class Meta:
+        ordering = ['order',]
+        
         
 class PollChoiceData(models.Model):
     choice = models.ForeignKey(PollChoice)
