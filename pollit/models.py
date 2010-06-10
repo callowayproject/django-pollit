@@ -123,15 +123,11 @@ class PollChoice(models.Model):
     order = models.IntegerField(default=1)
     
     def percentage(self):
-        print "Percentage"
         if not self.votes:
-            print "No Votes"
             return 0
             
         total = PollChoice.objects.filter(poll=self.poll).aggregate(Sum('votes'))
-        print "Total Votes"
         if total['votes__sum'] == 0:
-            print "No Total Votes"
             return 0
         return int((float(self.votes) / float(total['votes__sum'])) * 100)
     
