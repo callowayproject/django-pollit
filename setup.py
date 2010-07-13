@@ -1,13 +1,13 @@
 from distutils.core import setup
 
 setup(name='pollit',
-      version='0.1.2',
+      version='0.1.3',
       description='',
       long_description='',
       author='Jose Soares',
       author_email='jsoares@washingtontimes.com',
       url='http://opensource.washingtontimes.com/projects/pollit/',
-      packages=['pollit', 'pollit.templatetags'],
+      packages=['pollit'],
       classifiers=['Framework :: Django',
           'License :: OSI Approved :: Apache Software License',
           'Development Status :: 4 - Beta',
