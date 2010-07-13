@@ -1,10 +1,31 @@
-{% extends "stories/stories_base.html" %}
-{% load comments %}
+{% extends "site_base.html" %}
+
+{% load gdoubleclick comments native %}
+
+{% block pagetitle %}
+	Poll: {{ poll.question }}
+{% endblock %}
+
+{% block crumbs %}
+	<ul class="nav tertiary crumbs left">
+		<li class="noml"><a href="/">Home</a></li>
+		<li><a href="/polls/">Polls</a></li>
+		<li class="strong">{{ poll.question|truncatewords:"5" }}</li>
+	</ul>
+{% endblock %}
+
 {% block content %}
-	{% get_comment_list for story as comment_list %}
+    <div class="column c460">
+            <h1>Poll: {{ poll.question }}</h1>
+
+    </div>
+    <div class="full left hed nopad mb">
+            <h5>Comments</h5>
+	{% get_comment_list for poll as comment_list %}
 	{% for comment in comment_list %}
 		<a name="c{{comment.id}}"></a>
-		<a href="{{ story.get_absolute_url }}comments/#c{{comment.id}}">Link to this comment</a>
+		<a href="{{ poll.get_absolute_url }}comments/#c{{comment.id}}">Link to this comment</a>
 		{{comment}}
 	{% endfor %}
+    </div>
 {% endblock %}
