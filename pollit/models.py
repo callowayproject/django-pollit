@@ -32,7 +32,8 @@ class PollExpired(Exception):
 
 class PollManager(models.Manager):
     def get_latest_polls(self, count=10):
-        polls = Poll.objects.filter(
+        queryset = super(PollManager, self).get_query_set()
+        polls = queryset.filter(
             sites__pk__in=[settings.SITE_ID,], 
             status__in=[1,2],
             pub_date__lt=datetime.datetime.now()).order_by('-pub_date')
