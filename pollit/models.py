@@ -5,6 +5,7 @@ from django.contrib.sites.models import Site
 from django.contrib.auth.models import User
 from django.db.models import permalink
 from django.conf import settings
+from django.http import Http404
 
 POLL_STATUS = (
     (1, 'Controlled By Expire Date'),
