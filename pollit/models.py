@@ -18,13 +18,6 @@ POLL_COMMENT_STATUS = (
     (4, 'Allowed'),
 )
 
-class PollType(models.Model):
-    name = models.CharField(max_length=255)
-    slug = models.SlugField(unique=True)
-    
-    def __unicode__(self):
-        return self.name
-        
 
 class PollManager(models.Manager):
     def make_vote(self, choice_id, user):
