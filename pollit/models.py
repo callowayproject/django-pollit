@@ -31,14 +31,6 @@ class PollExpired(Exception):
     pass
 
 class PollManager(models.Manager):
-    def make_vote(self, choice_id, user):
-        try:
-            choice = PollChoice.objects.get(pk=choice_id)
-            PollChoiceData.objects.create(choice=choice, user=user)
-            return True
-        except:
-            return False
-            
     def get_latest_polls(self, count=10):
         polls = Poll.objects.filter(
             sites__pk__in=[settings.SITE_ID,], 
