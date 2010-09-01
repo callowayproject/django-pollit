@@ -18,6 +18,17 @@ POLL_COMMENT_STATUS = (
     (4, 'Allowed'),
 )
 
+class AlreadyVoted(Exception):
+    """
+    The user has already voted
+    """
+    pass
+
+class PollExpired(Exception):
+    """
+    The poll has expired
+    """
+    pass
 
 class PollManager(models.Manager):
     def make_vote(self, choice_id, user):
