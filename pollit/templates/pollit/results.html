@@ -25,26 +25,14 @@
     white-space: nowrap;
   }
 </style>
-
-<h3>Election results</h3>
-<ul>
-  {% for candidate in candidate_list|slice:":6" %}
-<h2><span style="width: {% widthratio choice.votes poll.get_total_votes 190 %}px">{{ poll.question }}</h2>
-	  {% endfor %}
-</ul>
-
+<h2>Poll: "{{ poll.question }}" Results</h2>
 
 <strong>Results {% if has_voted %}(You have voted)</strong>{% endif %}
 <ul>
 	{% if has_voted %}
         {% for choice in poll.pollchoice_set.all %}
-		<li>{% ifequal choice.id user_choice.id %}
-				<span style="width: {% widthratio choice.votes poll.get_total_votes 190 %}px">&rarr;&nbsp;<strong>{{ choice.choice }}</strong>
-			{% else %}
-				<span style="width: {% widthratio choice.votes poll.get_total_votes 190 %}px">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ choice.choice }}
-					
-{{ choice.votes }} {{poll.choice_set.count}}
-			{% endifequal %}</li>
+		<li><span style="width: {% widthratio choice.votes poll.total_votes 190 %}px">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ choice.choice }} {{ choice.votes }} {{poll.choice_set.count}}
+			{% ifequal choice.id user_choice.choice.id %}&nbsp;&nbsp;&larr; <strong>Your Vote</strong>{% endifequal %}</li>
         {% endfor %}
 	{% else %}
 	    {% for choice in poll.pollchoice_set.all %}
@@ -52,3 +40,13 @@
 	    {% endfor %}
 	{% endif %}
 </ul>
+
+{% ifnotequal poll.comment_status 1 %}
+{% load comments %}
+<h2>Comments</h2>
+{% render_comment_list for poll %}
+{% ifequal poll.comment_status 3 %}
+<h3>Make your own comment</h3>
+{% render_comment_form for poll %}
+{% endifequal %}
+{% endifnotequal %}
