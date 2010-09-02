@@ -73,4 +73,49 @@ class TestPollit(TestCase):
         user3 = User.objects.create_user('demouser3','demo3@example.com')
         selected_choice_id = self.poll.pollchoice_set.all()[0].id
         self.assertRaises(PollExpired, self.poll.vote, selected_choice_id, user3)
+    
+    
+    def testGetLatestPoll(self):
+        """
+        Make sure the code querying for only non-exired polls works
+        """
+        # Default status is open
+        polls = Poll.objects.get_latest_polls()
+        self.assertEquals(len(polls), 1)
+        
+        # Set to expire by date, but have no start or end date is valid
+        self.poll.status = 1
+        self.poll.save()
+        polls = Poll.objects.get_latest_polls()
+        self.assertEquals(len(polls), 1)
+        
+        # Set to expire by date, has start but no end date is valid
+        self.poll.pub_date = datetime.datetime(2010,1,1)
+        self.poll.save()
+        polls = Poll.objects.get_latest_polls()
+        self.assertEquals(len(polls), 1)
+        
+        # Set to expire by date, but has start and end date, but not reached end
+        self.poll.expire_date = datetime.datetime(2030,1,1)
+        self.poll.save()
+        polls = Poll.objects.get_latest_polls()
+        self.assertEquals(len(polls), 1)
+        
+        # Set to expire by date, but has start and end date and past end is
+        # not valid
+        self.poll.expire_date = datetime.datetime(2010,1,2)
+        self.poll.save()
+        polls = Poll.objects.get_latest_polls()
+        self.assertEquals(len(polls), 0)
+        polls = Poll.objects.get_latest_polls(include_expired=True)
+        self.assertEquals(len(polls), 1)
+        
+        # Set to expired
+        self.poll.status = 3
+        self.poll.save()
+        polls = Poll.objects.get_latest_polls()
+        self.assertEquals(len(polls), 0)
+        polls = Poll.objects.get_latest_polls(include_expired=True)
+        self.assertEquals(len(polls), 1)
+
         
