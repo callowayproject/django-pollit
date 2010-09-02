@@ -83,4 +83,4 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'pollit',
 )
-POLLIT_MULTIPLE_SITES = True
+POLLIT_MULTIPLE_SITES = False
