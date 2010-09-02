@@ -21,7 +21,6 @@ POLL_COMMENT_STATUS = (
     (1, 'Disabled'),
     (2, 'Show Only'),
     (3, 'Enabled'),
-    (4, 'Allowed'),
 )
 
 class AlreadyVoted(Exception):
