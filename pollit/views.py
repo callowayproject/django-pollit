@@ -7,6 +7,8 @@ from django.template import RequestContext
 
 from models import Poll, PollChoiceData, PollExpired
 
+MULTIPLE_SITES = getattr(settings, 'POLLIT_MULTIPLE_SITES', False)
+
 def index(request, count=10, template_name="pollit/index.html"):
     """
     Returns the latest polls, default is 10
@@ -30,8 +32,10 @@ def detail(request, year, month, day, slug, template_name="pollit/detail.html"):
         'pub_date__year': year,
         'pub_date__month': datetime.datetime.strptime(month, '%b').month,
         'slug': slug,
-        'sites__pk__in': [settings.SITE_ID,],
     }
+    
+    if MULTIPLE_SITES:
+        params['sites__pk'] = settings.SITE_ID
     if day is not None:
         params['pub_date__day'] = day
     
@@ -79,8 +83,10 @@ def results(request, year, month, day, slug, template_name="pollit/results.html"
         'pub_date__year': year,
         'pub_date__month': datetime.datetime.strptime(month, '%b').month,
         'slug': slug,
-        'sites__pk__in': [settings.SITE_ID,],
     }
+    
+    if MULTIPLE_SITES:
+        params['sites__pk'] = settings.SITE_ID
     if day is not None:
         params['pub_date__day'] = day
     
