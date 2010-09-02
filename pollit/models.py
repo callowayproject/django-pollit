@@ -37,26 +37,31 @@ class PollExpired(Exception):
     pass
 
 class PollManager(models.Manager):
-    def get_latest_polls(self, count=10):
+    """
+    Adds some basic utility functions for the Poll objects as a whole
+    """
+    def get_latest_polls(self, count=10, include_expired=False):
+        """
+        Return the latest <count> polls, optionally including the expired polls
+        """
         queryset = super(PollManager, self).get_query_set()
         params = {
-            'status__in': [1, 2],
             'pub_date__lt': datetime.datetime.now()
         }
+        args = []
+        if not include_expired:
+            from django.db.models import Q
+            args = [
+                Q(status=1, expire_date__isnull=True) |
+                Q(status=1, expire_date__gt=datetime.datetime.now()) |
+                Q(status=2)
+            ]
         if MULTIPLE_SITES:
             params['sites__pk'] = settings.SITE_ID
-        print params
-        polls = queryset.filter(**params).order_by('-pub_date')
-            
-        poll_list = []
-        for poll in polls:
-            if poll.status == 1 and poll.expire_date:
-                if poll.expire_date > datetime.datetime.now():
-                    poll_list.append(poll)
-            elif poll.status == 2:
-                poll_list.append(poll)
-                
-        return poll_list[:count]
+        
+        polls = queryset.filter(*args, **params).order_by('-pub_date')
+        
+        return polls[:count]
     
     def update_total_votes(self):
         """
