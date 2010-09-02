@@ -1,6 +1,9 @@
+"""
+The data models for polls, choices and votes
+"""
 import datetime
-from django.db import models
 
+from django.db import models
 from django.contrib.sites.models import Site
 from django.contrib.auth.models import User
 from django.db.models import permalink
@@ -71,6 +74,10 @@ class PollManager(models.Manager):
 
 
 class Poll(models.Model):
+    """
+    The basic model for a poll. It includes the question and how it should
+    expire (by date, or manually)
+    """
     question = models.CharField(max_length=255)
     slug = models.SlugField()
     pub_date = models.DateTimeField(auto_now_add=True)
@@ -93,7 +100,9 @@ class Poll(models.Model):
     
     @permalink
     def get_absolute_url(self):
-        print self.pub_date.year, self.pub_date.month, self.pub_date.day
+        """
+        The absolute url for this poll
+        """
         return ('pollit_detail', None, {
                 'year': self.pub_date.year,
                 'month': self.pub_date.strftime('%b').lower(),
@@ -102,21 +111,31 @@ class Poll(models.Model):
     
     @permalink
     def get_absolute_results_url(self):
+        """
+        The absolute url for the results of this poll
+        """
+        from django.core.urlresolvers import reverse
         return ('pollit_results', None, {
                 'year': self.pub_date.year,
-                'month': self.pub_date.month,
+                'month': self.pub_date.strftime('%b').lower(),
                 'day': self.pub_date.day,
                 'slug': self.slug })
     
     @permalink
     def get_absolute_comments_url(self):
-        return ('pollit_results', None, {
+        """
+        The absolute url for comments of this poll
+        """
+        return ('pollit_comments', None, {
                 'year': self.pub_date.year,
-                'month': self.pub_date.month,
+                'month': self.pub_date.strftime('%b').lower(),
                 'day': self.pub_date.day,
                 'slug': self.slug })
     
     def user_can_vote(self, user):
+        """
+        Make sure the user is able to vote: Logged in and hasn't voted
+        """
         if not user.is_authenticated():
             return False
         try:
