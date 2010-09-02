@@ -28,7 +28,7 @@ urlpatterns = patterns('',
     url('^%sresults/$' % YMDS_REGEX,
         'pollit.views.results',
         name='pollit_results'),
-    url('^%s/comments/$' % YMDS_REGEX,
+    url('^%scomments/$' % YMDS_REGEX,
         'django.views.generic.date_based.object_detail',
         kwargs=COMMENT_INFO_DICT,
         name='pollit_comments')
