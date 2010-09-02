@@ -13,7 +13,7 @@ def index(request, count=10, template_name="pollit/index.html"):
     """
     Returns the latest polls, default is 10
     """
-    polls = Poll.objects.get_latest_polls(count=count)
+    polls = Poll.objects.get_latest_polls(count=count, include_expired=True)
     
     return render_to_response(template_name,
                               {'poll_list': polls},
