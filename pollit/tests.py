@@ -12,6 +12,7 @@ class TestPollit(TestCase):
         self.poll = Poll.objects.create(
             question="How are you feeling?",
             pub_date=datetime.datetime.now(),
+            slug='how-are-you-feeling',
         )
         self.poll.save()
 
