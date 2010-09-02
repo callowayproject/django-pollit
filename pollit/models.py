@@ -48,22 +48,21 @@ class PollManager(models.Manager):
                 poll_list.append(poll)
                 
         return poll_list[:count]
-        
-    def get_poll(self, poll_id):
-        try:
-            p = self.get(pk=poll_id, 
-                sites__pk__in=[settings.SITE_ID,],
-                status__in=[1,2],
-                pub_date__lt=datetime.datetime.now())
-        except:
-            raise Poll.DoesNotExist
-            
-        if p.status == 1:
-            if p.expire_date <= datetime.datetime.now():
-                raise Poll.DoesNotExist
-                
-        return p
-            
+    
+    def update_total_votes(self):
+        """
+        Just in case the total_votes field in the Poll model isn't or wasn't
+        getting updated properly, this function will recalculate it by summing
+        the choice totals.
+        """
+        sql = """UPDATE pollit_poll SET total_votes = v.votes
+            FROM (SELECT poll_id, SUM(votes) FROM pollit_pollchoice 
+            GROUP BY poll_id) v WHERE pollit_poll.id = v.poll_id"""
+        from django.db import connection, transaction
+        cursor = connection.cursor()
+        cursor.execute(sql)
+        transaction.commit_unless_managed()
+
 
 class Poll(models.Model):
     question = models.CharField(max_length=255)
