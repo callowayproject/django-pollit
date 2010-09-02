@@ -7,6 +7,8 @@ from django.db.models import permalink
 from django.conf import settings
 from django.http import Http404
 
+MULTIPLE_SITES = getattr(settings, 'POLLIT_MULTIPLE_SITES', False)
+
 POLL_STATUS = (
     (1, 'Controlled By Expire Date'),
     (2, 'Open'),
@@ -34,10 +36,14 @@ class PollExpired(Exception):
 class PollManager(models.Manager):
     def get_latest_polls(self, count=10):
         queryset = super(PollManager, self).get_query_set()
-        polls = queryset.filter(
-            sites__pk__in=[settings.SITE_ID,], 
-            status__in=[1,2],
-            pub_date__lt=datetime.datetime.now()).order_by('-pub_date')
+        params = {
+            'status__in': [1, 2],
+            'pub_date__lt': datetime.datetime.now()
+        }
+        if MULTIPLE_SITES:
+            params['sites__pk'] = settings.SITE_ID
+        print params
+        polls = queryset.filter(**params).order_by('-pub_date')
             
         poll_list = []
         for poll in polls:
@@ -68,10 +74,9 @@ class Poll(models.Model):
     question = models.CharField(max_length=255)
     slug = models.SlugField()
     pub_date = models.DateTimeField(auto_now_add=True)
-    sites = models.ManyToManyField(Site, 
-        null=True, 
-        blank=True, 
-        related_name="polls")
+    if MULTIPLE_SITES:
+        sites = models.ManyToManyField(Site, 
+            related_name="polls")
     status = models.PositiveIntegerField(default=2, choices=POLL_STATUS)
     expire_date = models.DateTimeField(blank=True, null=True)
     total_votes = models.IntegerField(editable=False, default=0)
