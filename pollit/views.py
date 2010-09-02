@@ -45,24 +45,24 @@ def detail(request, year, month, day, slug, template_name="pollit/detail.html"):
         raise Http404
     
     errors = []
+    poll_choice = None
+    if request.user.is_authenticated():
+        try:
+            poll_choice = PollChoiceData.objects.get(
+                poll__pk=poll.pk, 
+                user__pk=request.user.pk)
+        except PollChoiceData.DoesNotExist:
+            pass
+        
     
     # If user is logged in and has not voted
     if request.method == "POST":
-        if request.user.is_authenticated():
-            try:
-                poll_choice = PollChoiceData.objects.get(
-                    poll__pk=poll.pk, 
-                    user__pk=request.user.pk)
-            except PollChoiceData.DoesNotExist:
-                poll_choice = None
-            
-            try:
+        try:
+            if not poll_choice:
                 poll.vote(request.POST['choice'], request.user)
                 return HttpResponseRedirect(poll.get_absolute_results_url())
-            except PollExpired:
-                errors.append('The poll has expired.')
-        else:
-            errors.append('You must be logged in to vote.')
+        except PollExpired:
+            errors.append('The poll has expired.')
         
     return render_to_response(template_name,
                               {'poll': poll,
