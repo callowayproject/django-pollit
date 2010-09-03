@@ -69,7 +69,7 @@ class PollManager(models.Manager):
         the choice totals.
         """
         sql = """UPDATE pollit_poll SET total_votes = v.votes
-            FROM (SELECT poll_id, SUM(votes) FROM pollit_pollchoice 
+            FROM (SELECT poll_id, SUM(votes) as votes FROM pollit_pollchoice 
             GROUP BY poll_id) v WHERE pollit_poll.id = v.poll_id"""
         from django.db import connection, transaction
         cursor = connection.cursor()
