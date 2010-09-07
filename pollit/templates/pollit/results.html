@@ -1,8 +1,52 @@
-<h2>{{ poll.question }}</h2>
+<style type="text/css" media="screen">
+  ul {
+    margin: 0;
+    padding: 0;
+    width: 190px;
+    background-color: #fff;
+  }
+  
+  ul li {
+    font-size: 11px;
+    line-height: 20px;
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+    border-bottom: 1px solid #ebeff2;
+    background-color: #fff;
+  }
+ 
+ ul li span {
+    background-color: #a9d2f2;
+    display: block;
+    color: #125a95;
+    font-weight: bold;
+    padding: 0 0 0 5px;
+    white-space: nowrap;
+  }
+</style>
+<h2>Poll: "{{ poll.question }}" Results</h2>
 
-<strong>Results</strong>
+<strong>Results {% if has_voted %}(You have voted)</strong>{% endif %}
 <ul>
-    {% for choice in poll.pollchoice_set.all %}
-        <li>{{ choice.choice }} - <strong>{{ choice.votes }}</strong></li>
-    {% endfor %}
+	{% if has_voted %}
+        {% for choice in poll.pollchoice_set.all %}
+		<li><span style="width: {% widthratio choice.votes poll.total_votes 190 %}px">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ choice.choice }} {{ choice.votes }} {{poll.choice_set.count}}
+			{% ifequal choice.id user_choice.choice.id %}&nbsp;&nbsp;&larr; <strong>Your Vote</strong>{% endifequal %}</li>
+        {% endfor %}
+	{% else %}
+	    {% for choice in poll.pollchoice_set.all %}
+	        <li>{{ choice.choice }} - <strong>{{ choice.votes }}</strong></li>
+	    {% endfor %}
+	{% endif %}
 </ul>
+
+{% ifnotequal poll.comment_status 1 %}
+{% load comments %}
+<h2>Comments</h2>
+{% render_comment_list for poll %}
+{% ifequal poll.comment_status 3 %}
+<h3>Make your own comment</h3>
+{% render_comment_form for poll %}
+{% endifequal %}
+{% endifnotequal %}
