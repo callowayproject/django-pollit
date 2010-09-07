@@ -1,22 +1,33 @@
-<h2>{{ poll.question }}</h2>
+{% if poll.is_expired %}
+<div id="note">This poll is now closed</div>
+{% endif %}
 
+<h2>{{ poll.question }}</h2>
 {% if has_voted %}
-    <strong>Results</strong>
+    <strong>You have already voted. See the <a href="{{ poll.get_absolute_results_url }}">results.</a></strong>
     <ul>
         {% for choice in poll.pollchoice_set.all %}
-            <li>{{ choice.choice }} - <strong>{{ choice.votes }}</strong></li>
+		<li>{% ifequal choice.id user_choice.choice.id %}
+				&rarr;&nbsp;<strong>{{ choice.choice }}</strong>
+			{% else %}
+				&nbsp;&nbsp;{{ choice.choice }}
+			{% endifequal %}</li>
         {% endfor %}
     </ul>
 {% else %}
-    <form action="." method="POST">
+    {% if not poll.is_expired %}<form action="." method="POST"> {% endif %}
         {% for choice in poll.pollchoice_set.all %}
             <input type="radio" name="choice" id="choice{{ forloop.counter }}" value="{{ choice.id }}" />
             <label for="choice{{ forloop.counter }}">{{ choice.choice }}</label><br />
         {% endfor %}
-        {% if user.is_authenticated %}
-            <p><input type="submit" value="Vote"></p>
-        {% else %}
-            <p><em>You must be logged in to vote!</em>
+		{% if poll.is_expired %}
+			<p><em>This poll is now closed.</em>See the <a href="{{ poll.get_absolute_results_url }}">results.</a></p>
+		{% else %}
+	        {% if user.is_authenticated %}
+	            <p><input type="submit" value="Vote"></p>
+	        {% else %}
+	            <p><em>You must be logged in to vote!</em>
+	        {% endif %}
         {% endif %}
-    </form>
+   {% if not poll.is_expired %}</form>{% endif %}
 {% endif %}
