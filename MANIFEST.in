@@ -7,3 +7,5 @@ recursive-include pollit/templates *
 include LICENSE
 include README
 include *.txt
+
+recursive-exclude example/
