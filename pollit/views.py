@@ -56,7 +56,7 @@ def detail(request, year, month, day, slug, template_name="pollit/detail.html"):
         
     
     # If user is logged in and has not voted
-    if request.POST.items() and request.user.is_authenticated() and not has_voted:
+    if 'choice' in request.POST and request.user.is_authenticated() and not has_voted:
         try:
             if not poll_choice:
                 poll.vote(request.POST['choice'], request.user)
