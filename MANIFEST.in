@@ -1,11 +1,9 @@
 recursive-include doc_src *
-#recursive-include docs *
 
-#recursive-include pollit/media *
-recursive-include pollit/templates *
+recursive-include pollit/templates *.html
 
 include LICENSE
 include README
 include *.txt
 
-recursive-exclude example/
+prune example/
