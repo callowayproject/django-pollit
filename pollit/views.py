@@ -5,9 +5,7 @@ from django.http import HttpResponseRedirect, Http404
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 
-from models import Poll, PollChoiceData, PollExpired
-
-MULTIPLE_SITES = getattr(settings, 'POLLIT_MULTIPLE_SITES', False)
+from pollit.models import Poll, PollChoiceData, PollExpired
 
 def index(request, count=10, template_name="pollit/index.html"):
     """
@@ -34,8 +32,6 @@ def detail(request, year, month, day, slug, template_name="pollit/detail.html"):
         'slug': slug,
     }
     
-    if MULTIPLE_SITES:
-        params['sites__pk'] = settings.SITE_ID
     if day is not None:
         params['pub_date__day'] = day
     
@@ -85,8 +81,6 @@ def results(request, year, month, day, slug, template_name="pollit/results.html"
         'slug': slug,
     }
     
-    if MULTIPLE_SITES:
-        params['sites__pk'] = settings.SITE_ID
     if day is not None:
         params['pub_date__day'] = day
     
