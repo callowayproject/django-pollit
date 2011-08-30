@@ -1,6 +1,6 @@
 """The ModelAdmin definitions for creating and editing polls in the admin"""
 from django.contrib import admin
-from models import Poll, PollChoice
+from pollit.models import Poll, PollChoice
 
 class ChoiceInline(admin.TabularInline):
     """The inline choices for the poll"""
@@ -9,8 +9,8 @@ class ChoiceInline(admin.TabularInline):
 
 class PollAdmin(admin.ModelAdmin):
     """The Poll Admin, with choices inline"""
-    list_display = ('question', 'status', 'pub_date', 'expire_date')
-    list_filter = ('status',)
+    list_display = ('question', 'status', 'total_votes', 'pub_date', 'expire_date')
+    list_filter = ('status', 'multiple_choice', 'comment_status')
     prepopulated_fields = {"slug": ("question",)}
     search_fields = ['question',]
     
