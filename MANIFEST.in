@@ -1,9 +1,11 @@
-recursive-include doc_src *
-
-recursive-include pollit/templates *.html
-
-include LICENSE
+include requirements.txt
 include README
-include *.txt
+include LICENSE
+include build_docs.sh
 
-prune example/
+recursive-include doc_src *.rst *.html *.css *.js *.png *.gif
+recursive-include docs *.html *.css *.js *.png *.gif
+
+recursive-include pollit *.py
+recursive-include pollit/media *.png *.js
+recursive-include pollit/templates *.html
