@@ -4,24 +4,17 @@ The data models for polls, choices and votes
 import datetime
 
 from django.db import models
-from django.contrib.sites.models import Site
 from django.contrib.auth.models import User
 from django.db.models import permalink
-from django.conf import settings
-from django.http import Http404
+from django.utils.translation import ugettext as _
 
-MULTIPLE_SITES = getattr(settings, 'POLLIT_MULTIPLE_SITES', False)
+from pollit import settings as pollit_settings
 
-POLL_STATUS = (
-    (1, 'Controlled By Expire Date'),
-    (2, 'Open'),
-    (3, 'Closed')
-)
-POLL_COMMENT_STATUS = (
-    (1, 'Disabled'),
-    (2, 'Show Only'),
-    (3, 'Enabled'),
-)
+class UserCannotVote(Exception):
+    """
+    The user must be Authenticated
+    """
+    pass
 
 class AlreadyVoted(Exception):
     """
@@ -41,7 +34,8 @@ class PollManager(models.Manager):
     """
     def get_latest_polls(self, count=10, include_expired=False):
         """
-        Return the latest <count> polls, optionally including the expired polls
+        Return the latest <count> polls, optionally including the 
+        expired polls
         """
         queryset = super(PollManager, self).get_query_set()
         params = {
@@ -55,14 +49,13 @@ class PollManager(models.Manager):
                 Q(status=1, expire_date__gt=datetime.datetime.now()) |
                 Q(status=2)
             ]
-        if MULTIPLE_SITES:
-            params['sites__pk'] = settings.SITE_ID
         
         polls = queryset.filter(*args, **params).order_by('-pub_date')
         
         return polls[:count]
     
-    def update_total_votes(self):
+    @staticmethod
+    def update_total_votes():
         """
         Just in case the total_votes field in the Poll model isn't or wasn't
         getting updated properly, this function will recalculate it by summing
@@ -79,20 +72,22 @@ class PollManager(models.Manager):
 
 class Poll(models.Model):
     """
-    The basic model for a poll. It includes the question and how it should
-    expire (by date, or manually)
+    The model for a poll. 
     """
-    question = models.CharField(max_length=255)
-    slug = models.SlugField()
-    pub_date = models.DateTimeField(auto_now_add=True)
-    if MULTIPLE_SITES:
-        sites = models.ManyToManyField(Site, 
-            related_name="polls")
-    status = models.PositiveIntegerField(default=2, choices=POLL_STATUS)
-    expire_date = models.DateTimeField(blank=True, null=True)
-    total_votes = models.IntegerField(editable=False, default=0)
-    comment_status = models.IntegerField('Comments', 
-        default=3, choices=POLL_COMMENT_STATUS)
+    question = models.CharField(_("Question"), max_length=255)
+    slug = models.SlugField(_("Slug"))
+    pub_date = models.DateTimeField(_("Publish Date"))
+    status = models.PositiveIntegerField(_("Status"), 
+        choices=pollit_settings.STATUS_CHOICES)
+    expire_date = models.DateTimeField(_("Expire Date"), blank=True,
+        null=True)
+    total_votes = models.IntegerField(_("Total Votes"), editable=False, 
+        default=0)
+    anonymous = models.BooleanField(_("Anonymous Voting"), 
+        default=pollit_settings.ANONYMOUS_VOTING)
+    multiple_choice = models.BooleanField(_("Multiple Choice"), default=False)
+    comment_status = models.IntegerField(_('Comments Status'), 
+        choices=pollit_settings.COMMENT_STATUS_CHOICES)
     
     objects = PollManager()
     
@@ -118,7 +113,6 @@ class Poll(models.Model):
         """
         The absolute url for the results of this poll
         """
-        from django.core.urlresolvers import reverse
         return ('pollit_results', None, {
                 'year': self.pub_date.year,
                 'month': self.pub_date.strftime('%b').lower(),
@@ -138,11 +132,19 @@ class Poll(models.Model):
     
     def user_can_vote(self, user):
         """
-        Make sure the user is able to vote: Logged in and hasn't voted
+        Make sure the user is able to vote: Logged in and hasn't voted or
+        ANONYMOUS_VOTING is set to True
         """
+        # If poll allows anonymous, user can vote
+        if self.anonymous:
+            return True
+            
+        # If no anonymous voting is allowed, make sure user is authenticated.
         if not user.is_authenticated():
             return False
+            
         try:
+            # User has already voted
             PollChoiceData.objects.get(poll__pk=self.pk, user__pk=user.pk)
             return False
         except PollChoiceData.DoesNotExist:
@@ -150,21 +152,28 @@ class Poll(models.Model):
     
     def is_expired(self):
         """
-        Check if the poll has expired. This is True if the status is 3
-        or if the status is 1 and there is no expire date, or the expire
-        date has not occured
+        Check if the poll has expired. Two settings can dictate which 
+        status to look for when determining if the poll is expired:
+        
+            EXPIRE_CHOICE - if the poll status is this setting, 
+                poll is expired
+            
+            EXPIRED_BY_DATE_CHOICE - if the poll status is this setting, the 
+                poll's expire date will be used to determine if its expored
+                
+                expire_date can be null, therefore the poll will never expire
+                if status is EXPIRED_BY_DATE_CHOICE
         """
-        if self.status == 2:
-            return False
-        elif self.status == 3:
+        if self.status == pollit_settings.EXPIRED_CHOICE:
             return True
-        else:
-            if self.expire_date is None:
+        elif self.status == pollit_settings.EXPIRED_BY_DATE_CHOICE:
+            if not self.expire_date:
                 return False
             elif self.expire_date <= datetime.datetime.now():
                 return True
+        return False
     
-    def vote(self, choice, user):
+    def vote(self, choice, user=None):
         """
         Vote on a poll.
         
@@ -172,22 +181,21 @@ class Poll(models.Model):
         
         :param choice: The id, or :class:`PollChoice` voted
         :type choice:  int or :class:`PollChoice`
-        :param user:   The user who voted.
+        :param user:   The user who voted (Optional).
         :type user:    A Django ``User`` instance
         """
+        
         if not self.user_can_vote(user):
-            raise AlreadyVoted()
+            raise UserCannotVote()
         
         if self.is_expired():
             raise PollExpired()
         
-        try:
-            if isinstance(choice, PollChoice):
-                selected_choice = choice
-            else:
-                selected_choice = PollChoice.objects.get(pk=choice)
-        except PollChoice.DoesNotExist:
-            raise Http404("Selected choice does not exist")
+        if isinstance(choice, PollChoice):
+            selected_choice = choice
+        else:
+            raise Exception, "choice argument must be a `PollChoice` instance"
+
         
         PollChoiceData.objects.create(
             poll=self, 
@@ -202,16 +210,16 @@ class Poll(models.Model):
 
 class PollChoice(models.Model):
     """
-    Choices for polls. Choices are referenced by their own unique id for voting.
+    Choices for polls.
     """
-    poll = models.ForeignKey(Poll)
-    choice = models.CharField(max_length=255)
-    votes = models.IntegerField(editable=False, default=0)
-    order = models.IntegerField(default=1)
+    poll = models.ForeignKey(Poll, verbose_name=_("Poll"))
+    choice = models.CharField(_("Choice"), max_length=255)
+    votes = models.IntegerField(_("Votes"), editable=False, default=0)
+    order = models.IntegerField(_("Order"), default=1)
     
     def percentage(self):
         """
-        The percentage of the total votes in the poll that choce this option
+        The percentage of the total votes in the poll
         """
         total = self.poll.total_votes
         if total == 0 or self.votes == 0:
@@ -219,7 +227,7 @@ class PollChoice(models.Model):
         return int((float(self.votes) / float(total)) * 100)
     
     def __unicode__(self):
-        return self.choice
+        return "%s - %s" % (self.poll.question, self.choice)
         
     class Meta:
         ordering = ['order',]
@@ -229,10 +237,10 @@ class PollChoiceData(models.Model):
     """
     A User's vote on a poll
     """
-    choice = models.ForeignKey(PollChoice)
-    user = models.ForeignKey(User)
-    poll = models.ForeignKey(Poll, related_name="votes")
+    choice = models.ForeignKey(PollChoice, verbose_name=_("Choice"))
+    user = models.ForeignKey(User, null=True, blank=True, 
+        verbose_name=_("User"))
+    poll = models.ForeignKey(Poll, related_name="votes", 
+        verbose_name=_("Poll"))
     
-    class Meta:
-        unique_together = ('choice', 'user')
     
