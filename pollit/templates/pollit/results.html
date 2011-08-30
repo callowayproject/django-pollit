@@ -41,12 +41,8 @@
 	{% endif %}
 </ul>
 
-{% ifnotequal poll.comment_status 1 %}
-{% load comments %}
+
 <h2>Comments</h2>
-{% render_comment_list for poll %}
-{% ifequal poll.comment_status 3 %}
-<h3>Make your own comment</h3>
-{% render_comment_form for poll %}
-{% endifequal %}
-{% endifnotequal %}
+    {% comment %}
+        Your comments here
+    {% endcomment %}
