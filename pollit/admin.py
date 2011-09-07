@@ -10,7 +10,7 @@ class ChoiceInline(admin.TabularInline):
 class PollAdmin(admin.ModelAdmin):
     """The Poll Admin, with choices inline"""
     list_display = ('question', 'status', 'total_votes', 'pub_date', 'expire_date')
-    list_filter = ('status', 'multiple_choice', 'comment_status')
+    list_filter = ('status', 'multiple_choice', 'comment_status', 'anonymous')
     prepopulated_fields = {"slug": ("question",)}
     search_fields = ['question',]
     
