@@ -48,6 +48,9 @@ class Migration(SchemaMigration):
         db.alter_column('pollit_poll', 'comment_status', self.gf('django.db.models.fields.IntegerField')())
 
         # User chose to not deal with backwards NULL issues for 'PollChoiceData.user'
+        # Thoughts: Because poll's can have anonymous users this value will 
+        # be set to null. If we wanted to roll back the schema to the previous 
+        # version we could create dummy user's per choice to replace the null values.
         raise RuntimeError("Cannot reverse this migration. 'PollChoiceData.user' and its values cannot be restored.")
 
         # Adding unique constraint on 'PollChoiceData', fields ['user', 'choice']
