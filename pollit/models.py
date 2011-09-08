@@ -4,6 +4,7 @@ The data models for polls, choices and votes
 import datetime
 
 from django.db import models
+from django.db.models import Q
 from django.contrib.auth.models import User
 from django.db.models import permalink
 from django.utils.translation import ugettext as _
@@ -16,15 +17,15 @@ class UserCannotVote(Exception):
     """
     pass
 
-class AlreadyVoted(Exception):
+class PollClosed(Exception):
     """
-    The user has already voted
+    The poll has closed
     """
     pass
-
-class PollExpired(Exception):
+    
+class TooManyChoicesSelected(Exception):
     """
-    The poll has expired
+    User has selected too many choices
     """
     pass
 
@@ -32,25 +33,30 @@ class PollManager(models.Manager):
     """
     Adds some basic utility functions for the Poll objects as a whole
     """
-    def get_latest_polls(self, count=10, include_expired=False):
+        
+    def get_latest_polls(self, count=10, include_all=False):
         """
         Return the latest <count> polls, optionally including the 
         expired polls
         """
         queryset = super(PollManager, self).get_query_set()
-        params = {
-            'pub_date__lt': datetime.datetime.now()
-        }
-        args = []
-        if not include_expired:
-            from django.db.models import Q
-            args = [
-                Q(status=1, expire_date__isnull=True) |
-                Q(status=1, expire_date__gt=datetime.datetime.now()) |
-                Q(status=2)
-            ]
         
-        polls = queryset.filter(*args, **params).order_by('-pub_date')
+        eargs, params = [], {}
+        if not include_all:
+            # Make sure the poll is not set to STATUS_CLOSED_CHOICE and
+            # that the poll is not expired
+            eargs = [
+                Q(status=pollit_settings.STATUS_CLOSED_CHOICE) |
+                Q(status=pollit_settings.STATUS_EXPIRED_BY_DATE_CHOICE,
+                    expire_date__isnull=False,
+                    expire_date__lte=datetime.datetime.now())
+            ]
+            # Ensure the published date is before or equal to now
+            params = {
+                'pub_date__lte': datetime.datetime.now(),
+            }
+            
+        polls = queryset.filter(**params).exclude(*eargs).order_by('-pub_date')
         
         return polls[:count]
     
@@ -76,9 +82,11 @@ class Poll(models.Model):
     """
     question = models.CharField(_("Question"), max_length=255)
     slug = models.SlugField(_("Slug"))
-    pub_date = models.DateTimeField(_("Publish Date"))
+    pub_date = models.DateTimeField(_("Publish Date"), 
+        default=datetime.datetime.now)
     status = models.PositiveIntegerField(_("Status"), 
-        choices=pollit_settings.STATUS_CHOICES)
+        choices=pollit_settings.STATUS_CHOICES, 
+        default=pollit_settings.STATUS_ACTIVE_CHOICE)
     expire_date = models.DateTimeField(_("Expire Date"), blank=True,
         null=True)
     total_votes = models.IntegerField(_("Total Votes"), editable=False, 
@@ -86,8 +94,10 @@ class Poll(models.Model):
     anonymous = models.BooleanField(_("Anonymous Voting"), 
         default=pollit_settings.ANONYMOUS_VOTING)
     multiple_choice = models.BooleanField(_("Multiple Choice"), default=False)
-    comment_status = models.IntegerField(_('Comments Status'), 
-        choices=pollit_settings.COMMENT_STATUS_CHOICES)
+    multiple_choice_limit = models.PositiveIntegerField(
+        _("Mutliple Choice Limit"), default=0)
+    comment_status = models.IntegerField(_('Comments Status'), null=True, 
+        blank=True, choices=pollit_settings.COMMENT_STATUS_CHOICES)
     
     objects = PollManager()
     
@@ -97,76 +107,94 @@ class Poll(models.Model):
     def __unicode__(self):
         return self.question
     
+    def add_choice(self, choice):
+        """
+        Add a choice to the poll
+        """
+        if not isinstance(choice, str):
+            raise ValueError, "choice must be a string."
+            
+        self.pollchoice_set.create(choice=choice)
+        
+    def add_choices(self, choices):
+        """
+        Add multiple choices to the poll
+        """
+        for choice in choices:
+            self.add_choice(choice)
+    
+    @staticmethod
+    def get_active_status_choices():
+        """
+        Retrieve all status choices that can make the poll active
+        """
+        return [s for s, v in pollit_settings.STATUS_CHOICES if s not in [
+            pollit_settings.STATUS_EXPIRED_BY_DATE_CHOICE, 
+            pollit_settings.STATUS_CLOSED_CHOICE]]
+            
+            
+    def _get_url(self, name):
+        """ Given a name, returns the arguments needed for getting urls """
+        return (name, None, {
+            'year': self.pub_date.year,
+            'month': self.pub_date.strftime('%b').lower(),
+            'day': self.pub_date.day,
+            'slug': self.slug })
+        
     @permalink
     def get_absolute_url(self):
-        """
-        The absolute url for this poll
-        """
-        return ('pollit_detail', None, {
-                'year': self.pub_date.year,
-                'month': self.pub_date.strftime('%b').lower(),
-                'day': self.pub_date.day,
-                'slug': self.slug })
+        """ The absolute url for this poll """
+        return self._get_url('pollit_detail')
     
     @permalink
     def get_absolute_results_url(self):
-        """
-        The absolute url for the results of this poll
-        """
-        return ('pollit_results', None, {
-                'year': self.pub_date.year,
-                'month': self.pub_date.strftime('%b').lower(),
-                'day': self.pub_date.day,
-                'slug': self.slug })
-    
+        """ The absolute url for the results of this poll """
+        return self._get_url('pollit_results')
+        
     @permalink
     def get_absolute_comments_url(self):
-        """
-        The absolute url for comments of this poll
-        """
-        return ('pollit_comments', None, {
-                'year': self.pub_date.year,
-                'month': self.pub_date.strftime('%b').lower(),
-                'day': self.pub_date.day,
-                'slug': self.slug })
+        """ The absolute url for comments of this poll """
+        return self._get_url('pollit_comments')
     
     def user_can_vote(self, user):
-        """
-        Make sure the user is able to vote: Logged in and hasn't voted or
-        ANONYMOUS_VOTING is set to True
-        """
-        # If poll allows anonymous, user can vote
+        """ Make sure the user is able to vote """
+        # If poll is anonymous, user can vote.
         if self.anonymous:
             return True
             
         # If no anonymous voting is allowed, make sure user is authenticated.
-        if not user.is_authenticated():
+        if not user or not user.is_authenticated():
             return False
             
-        try:
-            # User has already voted
-            PollChoiceData.objects.get(poll__pk=self.pk, user__pk=user.pk)
-            return False
-        except PollChoiceData.DoesNotExist:
+        polldata = self.votes.filter(user__pk=user.pk)
+            
+        # If no votes were found for user, return True
+        if not len(polldata):
+            return True 
+        # If there is a length and multiple choice is allowed, return True
+        elif self.multiple_choice:
             return True
+            
+        # TODO: check for limited choice selection
+        
+        # Default return
+        return False
     
-    def is_expired(self):
+    def is_closed(self):
         """
         Check if the poll has expired. Two settings can dictate which 
         status to look for when determining if the poll is expired:
         
-            EXPIRE_CHOICE - if the poll status is this setting, 
+            STATUS_CLOSED_CHOICE - if the poll status is this setting, 
                 poll is expired
             
-            EXPIRED_BY_DATE_CHOICE - if the poll status is this setting, the 
-                poll's expire date will be used to determine if its expored
-                
-                expire_date can be null, therefore the poll will never expire
-                if status is EXPIRED_BY_DATE_CHOICE
+            STATUS_EXPIRED_BY_DATE_CHOICE - if the poll status is this 
+                setting, the poll's expire date will be used to determine 
+                if its expored
         """
-        if self.status == pollit_settings.EXPIRED_CHOICE:
+        if self.status == pollit_settings.STATUS_CLOSED_CHOICE:
             return True
-        elif self.status == pollit_settings.EXPIRED_BY_DATE_CHOICE:
+        elif self.status == pollit_settings.STATUS_EXPIRED_BY_DATE_CHOICE:
             if not self.expire_date:
                 return False
             elif self.expire_date <= datetime.datetime.now():
@@ -174,34 +202,25 @@ class Poll(models.Model):
         return False
     
     def vote(self, choice, user=None):
-        """
-        Vote on a poll.
-        
-        Does all the checks for duplication
-        
-        :param choice: The id, or :class:`PollChoice` voted
-        :type choice:  int or :class:`PollChoice`
-        :param user:   The user who voted (Optional).
-        :type user:    A Django ``User`` instance
-        """
+        """ Vote on a poll. """
         
         if not self.user_can_vote(user):
-            raise UserCannotVote()
+            raise UserCannotVote
         
-        if self.is_expired():
-            raise PollExpired()
+        if self.is_closed():
+            raise PollClosed
         
         if isinstance(choice, PollChoice):
             selected_choice = choice
         else:
-            raise Exception, "choice argument must be a `PollChoice` instance"
+            raise ValueError, "choice argument must be a `PollChoice` instance"
 
-        
-        PollChoiceData.objects.create(
-            poll=self, 
+        # Create the poll choice data
+        self.votes.create(
             choice=selected_choice, 
             user=user)
         
+        # Increament the totals
         selected_choice.votes += 1
         selected_choice.save()
         self.total_votes += 1
@@ -209,9 +228,7 @@ class Poll(models.Model):
 
 
 class PollChoice(models.Model):
-    """
-    Choices for polls.
-    """
+    """ Choices for polls. """
     poll = models.ForeignKey(Poll, verbose_name=_("Poll"))
     choice = models.CharField(_("Choice"), max_length=255)
     votes = models.IntegerField(_("Votes"), editable=False, default=0)
@@ -235,7 +252,7 @@ class PollChoice(models.Model):
         
 class PollChoiceData(models.Model):
     """
-    A User's vote on a poll
+    A User's choice on a poll, user can be null (for anonymous polls)
     """
     choice = models.ForeignKey(PollChoice, verbose_name=_("Choice"))
     user = models.ForeignKey(User, null=True, blank=True, 
@@ -243,4 +260,4 @@ class PollChoiceData(models.Model):
     poll = models.ForeignKey(Poll, related_name="votes", 
         verbose_name=_("Poll"))
     
-    
+        
