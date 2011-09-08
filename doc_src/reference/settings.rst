@@ -1,3 +1,5 @@
+.. _settings:
+
 ========
 Settings
 ========
@@ -6,6 +8,15 @@ POLLIT_SETTINGS
 ===============
 
 Dictionary of all the Pollit settings
+
+Default::
+
+    DEFAULT_COOKIE_KEY = pollit_ckey
+
+COOKIE_KEY
+----------
+
+The key to use when storing/retrieving poll choice data for a user
 
 
 STATUS_CHOICES
@@ -21,23 +32,32 @@ Default::
         (3, _(u'Closed'))
     )
     
-EXPIRED_CHOICE
---------------
+STATUS_CLOSED_CHOICE
+--------------------
 
-The choice to identify when a poll is expired
+The choice to identify when a poll is closed
 
 Default::
     
-    DEFAULT_EXPIRED_CHOICE = 3
+    DEFAULT_STATUS_CLOSED_CHOICE = 3
 
-EXPIRED_BY_DATE_CHOICE
-----------------------
+STATUS_EXPIRED_BY_DATE_CHOICE
+-----------------------------
 
 The choice to identify when to check the expired date for a poll
 
 Default::
 
-    DEFAULT_EXPIRED_BY_DATE_CHOICE = 1
+    DEFAULT_STATUS_EXPIRED_BY_DATE_CHOICE = 1
+    
+STATUS_ACTIVE_CHOICE
+--------------------
+
+The default choice for active poll's
+
+Default::
+
+    DEFAULT_ACTIVE_CHOICE = 2
 
 COMMENT_STATUS_CHOICES
 ----------------------
@@ -56,12 +76,3 @@ Default::
         (2, _(u'Show Only')),
         (3, _(u'Enabled')),
     )
-    
-ANONYMOUS_VOTING
-----------------
-
-Allow anonymous voting
-
-Default::
-
-    False

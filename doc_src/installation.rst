@@ -23,3 +23,10 @@ Run syncdb::
 
     >>> ./manage.py syncdb
 
+Add urls::
+
+    urlpatterns = patterns('',
+        ...
+        (r'^polls/', include('pollit.urls')),
+        ...
+    )
