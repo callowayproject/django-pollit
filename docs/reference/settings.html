@@ -1,0 +1,178 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Settings &mdash; pollit v0.1 documentation</title>
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="pollit v0.1 documentation" href="../index.html" />
+    <link rel="up" title="Reference" href="index.html" />
+    <link rel="prev" title="Reference" href="index.html" /> 
+  </head>
+  <body>
+<div id="docstitle">
+	<p>pollit v0.1 documentation</p>
+</div>
+<div id="header">
+	<div id="title"><h1>Settings</h1></div>
+	<ul id="headerButtons">
+		<li id="toc_button"><div class="headerButton"><a href="#">Table of Contents</a></div></li>
+		<li id="page_buttons">
+			<div class="headerButton"><a href="../genindex.html" title="General Index" accesskey="I">index</a></div>
+			<div class="headerButton"><a href="index.html" title="Reference" accesskey="P">previous</a></div>
+		</li>
+	</ul>
+</div>
+
+<div id="sphinxsidebar">
+  <div class="sphinxsidebarwrapper">
+	<ul><li class="toctree-l1"><a href="../index.html">Main Page</a></li></ul>
+	<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="">Settings</a></li>
+</ul>
+</li>
+</ul>
+
+    <div id="searchbox" style="display: none">
+      
+        <form class="search" action="../search.html" method="get">
+			<div class="search-wrapper">
+			<span class="search-left"></span>
+			<input class="prettysearch" type="text" name="q" size="18" />
+			<span class="search-right">&nbsp;</span>
+			</div>
+          <input type="submit" value="Search" class="searchbutton" />
+          <input type="hidden" name="check_keywords" value="yes" />
+          <input type="hidden" name="area" value="default" />
+        </form>
+        <p class="searchtip" style="font-size: 90%">
+        Enter search terms or a module, class or function name.
+        </p>
+    </div>
+    <script type="text/javascript">$('#searchbox').show(0);</script>
+  </div>
+</div>
+
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="settings">
+<span id="id1"></span><h1>Settings<a class="headerlink" href="#settings" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="pollit-settings">
+<h2>POLLIT_SETTINGS<a class="headerlink" href="#pollit-settings" title="Permalink to this headline">¶</a></h2>
+<p>Dictionary of all the Pollit settings</p>
+<p>Default:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">DEFAULT_COOKIE_KEY</span> <span class="o">=</span> <span class="n">pollit_ckey</span>
+</pre></div>
+</div>
+<div class="section" id="cookie-key">
+<h3>COOKIE_KEY<a class="headerlink" href="#cookie-key" title="Permalink to this headline">¶</a></h3>
+<p>The key to use when storing/retrieving poll choice data for a user</p>
+</div>
+<div class="section" id="status-choices">
+<h3>STATUS_CHOICES<a class="headerlink" href="#status-choices" title="Permalink to this headline">¶</a></h3>
+<p>Used for the choices of <cite>Poll.status</cite></p>
+<p>Default:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">DEFAULT_STATUS_CHOICES</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s">u&#39;Controlled By Expire Date&#39;</span><span class="p">)),</span>
+    <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s">u&#39;Open&#39;</span><span class="p">)),</span>
+    <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s">u&#39;Closed&#39;</span><span class="p">))</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="status-closed-choice">
+<h3>STATUS_CLOSED_CHOICE<a class="headerlink" href="#status-closed-choice" title="Permalink to this headline">¶</a></h3>
+<p>The choice to identify when a poll is closed</p>
+<p>Default:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">DEFAULT_STATUS_CLOSED_CHOICE</span> <span class="o">=</span> <span class="mi">3</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="status-expired-by-date-choice">
+<h3>STATUS_EXPIRED_BY_DATE_CHOICE<a class="headerlink" href="#status-expired-by-date-choice" title="Permalink to this headline">¶</a></h3>
+<p>The choice to identify when to check the expired date for a poll</p>
+<p>Default:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">DEFAULT_STATUS_EXPIRED_BY_DATE_CHOICE</span> <span class="o">=</span> <span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="status-active-choice">
+<h3>STATUS_ACTIVE_CHOICE<a class="headerlink" href="#status-active-choice" title="Permalink to this headline">¶</a></h3>
+<p>The default choice for active poll&#8217;s</p>
+<p>Default:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">DEFAULT_ACTIVE_CHOICE</span> <span class="o">=</span> <span class="mi">2</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="comment-status-choices">
+<h3>COMMENT_STATUS_CHOICES<a class="headerlink" href="#comment-status-choices" title="Permalink to this headline">¶</a></h3>
+<p>Choices to use for showing, disabled or enabled comments</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Pollit does not have its own comment system, this is here so you can
+control the way Pollit should display comments</p>
+</div>
+<p>Default:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">DEFAULT_COMMENT_STATUS_CHOICES</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s">u&#39;Disabled&#39;</span><span class="p">)),</span>
+    <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s">u&#39;Show Only&#39;</span><span class="p">)),</span>
+    <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">_</span><span class="p">(</span><span class="s">u&#39;Enabled&#39;</span><span class="p">)),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="anonymous-voting">
+<h3>ANONYMOUS_VOTING<a class="headerlink" href="#anonymous-voting" title="Permalink to this headline">¶</a></h3>
+<p>Allow anonymous voting</p>
+<p>Default:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="bp">False</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+          </div> 
+        </div>
+      </div>
+    <div class="footer">
+    <p>
+      &copy; Copyright 2009, me.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.3.
+	</p>
+    </div>
+      <div class="clearer"></div>
+    </div>
+	<div id="breadcrumbs">
+		<a href="index.html" accesskey="U">Reference</a><img src="../_static/triangle_closed.png" height="9" width="9" alt="&gt;">
+		Settings
+		</ul>
+	</div>
+	<script type="text/javascript" charset="utf-8" src="../_static/toc.js"></script>
+  </body>
+</html>
