@@ -5,13 +5,13 @@ from django.http import HttpResponseRedirect, Http404
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 
-from pollit.models import Poll, PollChoiceData, PollExpired
+from pollit.models import Poll, PollChoiceData, PollClosed, UserCannotVote
 
 def index(request, count=10, template_name="pollit/index.html"):
     """
     Returns the latest polls, default is 10
     """
-    polls = Poll.objects.get_latest_polls(count=count, include_expired=True)
+    polls = Poll.objects.get_latest_polls(count=count, include_all=False)
     
     return render_to_response(template_name,
                               {'poll_list': polls},
@@ -23,8 +23,7 @@ def detail_old(request, year, month, slug, template_name="pollit/detail.html"):
 
 def detail(request, year, month, day, slug, template_name="pollit/detail.html"):
     """
-    Display the basic voting page. If the user has voted or is not authenticated
-    They cannot vote.
+    Display the basic voting page.
     """
     params = {
         'pub_date__year': year,
@@ -37,7 +36,7 @@ def detail(request, year, month, day, slug, template_name="pollit/detail.html"):
     
     try:
         poll = Poll.objects.get(**params)
-    except Poll.DoesNotExist, Poll.MultipleItemsReturned:
+    except Poll.DoesNotExist:
         raise Http404
     
     errors = []
@@ -57,7 +56,7 @@ def detail(request, year, month, day, slug, template_name="pollit/detail.html"):
             if not poll_choice:
                 poll.vote(request.POST['choice'], request.user)
                 return HttpResponseRedirect(poll.get_absolute_results_url())
-        except PollExpired:
+        except PollClosed:
             errors.append('The poll has expired.')
         
     return render_to_response(template_name,
