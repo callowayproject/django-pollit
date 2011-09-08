@@ -1,6 +1,5 @@
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
-import warnings
 
 DEFAULT_COOKIE_KEY = "pollit_ckey"
 
@@ -26,11 +25,8 @@ DEFAULT_SETTINGS = {
     'STATUS_CLOSED_CHOICE': DEFAULT_STATUS_CLOSED_CHOICE,
     'STATUS_EXPIRED_BY_DATE_CHOICE': DEFAULT_STATUS_EXPIRED_BY_DATE_CHOICE,
     'STATUS_ACTIVE_CHOICE': DEFAULT_ACTIVE_CHOICE,
-    'COMMENT_STATUS_CHOICES': DEFAULT_COMMENT_STATUS_CHOICES,
-    'ANONYMOUS_VOTING': False
+    'COMMENT_STATUS_CHOICES': DEFAULT_COMMENT_STATUS_CHOICES
 }
-
-error_str = "settings.%s is deprecated; use settings.POLLIT_SETTINGS instead."
 
 USER_SETTINGS = getattr(settings, 'POLLIT_SETTINGS', {})
 
