@@ -92,7 +92,7 @@ class Poll(models.Model):
     total_votes = models.IntegerField(_("Total Votes"), editable=False, 
         default=0)
     anonymous = models.BooleanField(_("Anonymous Voting"), 
-        default=pollit_settings.ANONYMOUS_VOTING)
+        default=False)
     multiple_choice = models.BooleanField(_("Multiple Choice"), default=False)
     multiple_choice_limit = models.PositiveIntegerField(
         _("Mutliple Choice Limit"), default=0)
