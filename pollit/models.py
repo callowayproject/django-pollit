@@ -9,6 +9,7 @@ from django.contrib.auth.models import User
 from django.db.models import permalink
 from django.conf import settings
 from django.http import Http404
+from settings import AUTHENTICATION_REQUIRED
 
 MULTIPLE_SITES = getattr(settings, 'POLLIT_MULTIPLE_SITES', False)
 
@@ -136,18 +137,34 @@ class Poll(models.Model):
                 'day': self.pub_date.day,
                 'slug': self.slug })
     
-    def user_can_vote(self, user):
+    def user_can_vote(self, user, ip):
         """
         Make sure the user is able to vote: Logged in and hasn't voted
         """
-        if not user.is_authenticated():
+
+        if AUTHENTICATION_REQUIRED and not user or (AUTHENTICATION_REQUIRED and user and not user.is_authenticated()):
             return False
-        try:
-            PollChoiceData.objects.get(poll__pk=self.pk, user__pk=user.pk)
+        elif not ip:
             return False
-        except PollChoiceData.DoesNotExist:
+
+        if self.get_poll_choice(user, ip) == None:
             return True
+        else:
+            return False
     
+    def get_poll_choice(self, user, ip):
+        if user and user.is_authenticated():
+            poll_data_qs = PollChoiceData.objects.filter(poll__pk=self.pk, user__pk=user.pk)
+        elif ip:
+            poll_data_qs = PollChoiceData.objects.filter(poll__pk=self.pk, ip=ip)
+        else:
+            return None
+        
+        if poll_data_qs.count():
+            return poll_data_qs[0]
+        else:
+            return None
+        
     def is_expired(self):
         """
         Check if the poll has expired. This is True if the status is 3
@@ -164,7 +181,7 @@ class Poll(models.Model):
             elif self.expire_date <= datetime.datetime.now():
                 return True
     
-    def vote(self, choice, user):
+    def vote(self, choice, user, ip):
         """
         Vote on a poll.
         
@@ -175,7 +192,7 @@ class Poll(models.Model):
         :param user:   The user who voted.
         :type user:    A Django ``User`` instance
         """
-        if not self.user_can_vote(user):
+        if not self.user_can_vote(user, ip):
             raise AlreadyVoted()
         
         if self.is_expired():
@@ -189,10 +206,14 @@ class Poll(models.Model):
         except PollChoice.DoesNotExist:
             raise Http404("Selected choice does not exist")
         
-        PollChoiceData.objects.create(
-            poll=self, 
-            choice=selected_choice, 
-            user=user)
+        poll_choice_data = PollChoiceData()
+        poll_choice_data.poll = self
+        poll_choice_data.choice = selected_choice
+        if user and user.is_authenticated():
+            poll_choice_data.user = user
+        if ip:
+            poll_choice_data.ip = ip
+        poll_choice_data.save()
         
         selected_choice.votes += 1
         selected_choice.save()
@@ -230,9 +251,9 @@ class PollChoiceData(models.Model):
     A User's vote on a poll
     """
     choice = models.ForeignKey(PollChoice)
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(User, null=True, blank=True)
     poll = models.ForeignKey(Poll, related_name="votes")
-    
+    ip = models.CharField(max_length=50, null=True, blank=True)
     class Meta:
         unique_together = ('choice', 'user')
     

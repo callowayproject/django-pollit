@@ -6,7 +6,7 @@ from django.shortcuts import render_to_response
 from django.template import RequestContext
 
 from models import Poll, PollChoiceData, PollExpired
-
+from settings import AUTHENTICATION_REQUIRED
 MULTIPLE_SITES = getattr(settings, 'POLLIT_MULTIPLE_SITES', False)
 
 def index(request, count=10, template_name="pollit/index.html"):
@@ -28,6 +28,15 @@ def detail(request, year, month, day, slug, template_name="pollit/detail.html"):
     Display the basic voting page. If the user has voted or is not authenticated
     They cannot vote.
     """
+    bot_detection = False
+    
+    # These are bogus fields to try to detect a bot trying to vote. 
+    if request.POST:
+        bogus_email = request.POST.get('email', None)
+        bogus_username = request.POST.get('username', None)
+        if bogus_email != 'valid_email' or bogus_username:
+            bot_detection = True
+
     params = {
         'pub_date__year': year,
         'pub_date__month': datetime.datetime.strptime(month, '%b').month,
@@ -43,32 +52,24 @@ def detail(request, year, month, day, slug, template_name="pollit/detail.html"):
         poll = Poll.objects.get(**params)
     except Poll.DoesNotExist, Poll.MultipleItemsReturned:
         raise Http404
-    
+    ip = get_client_ip(request)
     errors = []
-    poll_choice = None
-    if request.user.is_authenticated():
-        try:
-            poll_choice = PollChoiceData.objects.get(
-                poll__pk=poll.pk, 
-                user__pk=request.user.pk)
-        except PollChoiceData.DoesNotExist:
-            pass
-        
-    
     # If user is logged in and has not voted
-    if 'choice' in request.POST and request.user.is_authenticated():
+
+    if 'choice' in request.POST and not bot_detection and poll.user_can_vote(request.user, ip):
         try:
-            if not poll_choice:
-                poll.vote(request.POST['choice'], request.user)
-                return HttpResponseRedirect(poll.get_absolute_results_url())
+            poll.vote(request.POST['choice'], request.user, ip)
+            return HttpResponseRedirect(poll.get_absolute_results_url())
         except PollExpired:
             errors.append('The poll has expired.')
-        
+    
+    poll_choice = poll.get_poll_choice(request.user, ip)
     return render_to_response(template_name,
                               {'poll': poll,
                                'has_voted': (poll_choice is not None),
                                'user_choice': poll_choice,
-                               'errors': errors},
+                               'errors': errors,
+                               'must_login_to_vote':AUTHENTICATION_REQUIRED and not request.user.is_authenticated()},
                               context_instance=RequestContext(request))
 
 def results_old(request, year, month, slug, template_name="pollit/results.html"):
@@ -95,19 +96,20 @@ def results(request, year, month, day, slug, template_name="pollit/results.html"
     except:
         raise Http404
     
-    poll_choice = None
-    if request.user.is_authenticated():
-        try:
-            poll_choice = PollChoiceData.objects.get(
-                choice__poll__pk=poll.pk, 
-                user=request.user.pk)
-        except PollChoiceData.DoesNotExist:
-            pass
-    
+    ip = get_client_ip(request)
+    poll_choice = poll.get_poll_choice(request.user, ip)
+   
     return render_to_response(template_name,
                               {'poll': poll,
                               'has_voted': poll_choice is not None,
                               'user_choice': poll_choice},
                               context_instance=RequestContext(request))
-    
+
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
     
