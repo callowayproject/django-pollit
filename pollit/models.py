@@ -139,10 +139,13 @@ class Poll(models.Model):
     
     def user_can_vote(self, user, ip):
         """
-        Make sure the user is able to vote: Logged in and hasn't voted
+        Make sure the user is able to vote: Thus if they are logged in 
+        see if their user has voted yet, else if IP then check by IP. Otherwise
+        they are not allowed to vote
         """
 
-        if AUTHENTICATION_REQUIRED and not user or (AUTHENTICATION_REQUIRED and user and not user.is_authenticated()):
+        if AUTHENTICATION_REQUIRED and not user or \
+                (AUTHENTICATION_REQUIRED and user and not user.is_authenticated()):
             return False
         elif not ip:
             return False
@@ -153,6 +156,8 @@ class Poll(models.Model):
             return False
     
     def get_poll_choice(self, user, ip):
+        """ Get poll choice. if they are logged in get it by their user otherwise
+        get it by the IP """
         if user and user.is_authenticated():
             poll_data_qs = PollChoiceData.objects.filter(poll__pk=self.pk, user__pk=user.pk)
         elif ip:
@@ -212,6 +217,7 @@ class Poll(models.Model):
         if user and user.is_authenticated():
             poll_choice_data.user = user
         if ip:
+            # if they had an IP store it
             poll_choice_data.ip = ip
         poll_choice_data.save()
         

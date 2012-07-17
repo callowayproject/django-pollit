@@ -6,7 +6,7 @@ from django.shortcuts import render_to_response
 from django.template import RequestContext
 
 from models import Poll, PollChoiceData, PollExpired
-from settings import AUTHENTICATION_REQUIRED
+from settings import AUTHENTICATION_REQUIRED, CHECK_FOR_BOTS
 MULTIPLE_SITES = getattr(settings, 'POLLIT_MULTIPLE_SITES', False)
 
 def index(request, count=10, template_name="pollit/index.html"):
@@ -30,8 +30,10 @@ def detail(request, year, month, day, slug, template_name="pollit/detail.html"):
     """
     bot_detection = False
     
-    # These are bogus fields to try to detect a bot trying to vote. 
-    if request.POST:
+    # These are bogus fields to try to detect a bot trying to vote. These
+    # fields must be added to the form. Look in templates/pollit/detail.html 
+    # for example
+    if request.POST and CHECK_FOR_BOTS:
         bogus_email = request.POST.get('email', None)
         bogus_username = request.POST.get('username', None)
         if bogus_email != 'valid_email' or bogus_username:
@@ -56,7 +58,8 @@ def detail(request, year, month, day, slug, template_name="pollit/detail.html"):
     errors = []
     # If user is logged in and has not voted
 
-    if 'choice' in request.POST and not bot_detection and poll.user_can_vote(request.user, ip):
+    if 'choice' in request.POST and not bot_detection and \
+            poll.user_can_vote(request.user, ip):
         try:
             poll.vote(request.POST['choice'], request.user, ip)
             return HttpResponseRedirect(poll.get_absolute_results_url())
@@ -69,7 +72,8 @@ def detail(request, year, month, day, slug, template_name="pollit/detail.html"):
                                'has_voted': (poll_choice is not None),
                                'user_choice': poll_choice,
                                'errors': errors,
-                               'must_login_to_vote':AUTHENTICATION_REQUIRED and not request.user.is_authenticated()},
+                               'must_login_to_vote':AUTHENTICATION_REQUIRED and \
+                                        not request.user.is_authenticated()},
                               context_instance=RequestContext(request))
 
 def results_old(request, year, month, slug, template_name="pollit/results.html"):
