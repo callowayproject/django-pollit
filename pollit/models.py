@@ -159,7 +159,7 @@ class Poll(models.Model):
         
         poll_data_qs = None
         if user and user.is_authenticated():
-            poll_data_qs = poll_data_qs.objects.filter(poll__pk=self.pk, 
+            poll_data_qs = PollChoiceData.objects.filter(poll__pk=self.pk, 
                                                          user__pk=user.pk)
         elif poll_choice_data_id:
             poll_data_qs = PollChoiceData.objects.filter(id=poll_choice_data_id)
