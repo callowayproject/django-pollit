@@ -1,5 +1,5 @@
 <style>
-    .required {display:None}
+    .polls_required_field {display:None}
 </style>
 
 {% if poll.is_expired %}
@@ -20,8 +20,8 @@
     </ul>
 {% else %}
     {% if not poll.is_expired %}<form action="." method="POST"> {% endif %}
-        <input type='text' name='email' class='required' value='valid_email'/>
-        <input type='text' name='username' class='required'/>
+        <input type='text' name='email' class='polls_required_field' value='valid_email'/>
+        <input type='text' name='username' class='polls_required_field'/>
         {% for choice in poll.pollchoice_set.all %}
             <input type="radio" name="choice" id="choice{{ forloop.counter }}" value="{{ choice.id }}" />
             <label for="choice{{ forloop.counter }}">{{ choice.choice }}</label><br />

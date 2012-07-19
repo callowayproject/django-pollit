@@ -137,7 +137,7 @@ class Poll(models.Model):
                 'day': self.pub_date.day,
                 'slug': self.slug })
     
-    def user_can_vote(self, user, ip):
+    def user_can_vote(self, user, poll_choice_data_id, ip):
         """
         Make sure the user is able to vote: Thus if they are logged in 
         see if their user has voted yet, else if IP then check by IP. Otherwise
@@ -147,25 +147,24 @@ class Poll(models.Model):
         if AUTHENTICATION_REQUIRED and not user or \
                 (AUTHENTICATION_REQUIRED and user and not user.is_authenticated()):
             return False
-        elif not ip:
-            return False
 
-        if self.get_poll_choice(user, ip) == None:
+        if self.get_poll_choice(user, poll_choice_data_id, ip) == None:
             return True
         else:
             return False
     
-    def get_poll_choice(self, user, ip):
+    def get_poll_choice(self, user, poll_choice_data_id, ip):
         """ Get poll choice. if they are logged in get it by their user otherwise
         get it by the IP """
-        if user and user.is_authenticated():
-            poll_data_qs = PollChoiceData.objects.filter(poll__pk=self.pk, user__pk=user.pk)
-        elif ip:
-            poll_data_qs = PollChoiceData.objects.filter(poll__pk=self.pk, ip=ip)
-        else:
-            return None
         
-        if poll_data_qs.count():
+        poll_data_qs = None
+        if user and user.is_authenticated():
+            poll_data_qs = poll_data_qs.filter(poll__pk=self.pk, 
+                                                         user__pk=user.pk)
+        elif poll_choice_data_id:
+            poll_data_qs = PollChoiceData.objects.filter(id=poll_choice_data_id)
+            
+        if poll_data_qs and poll_data_qs.count():
             return poll_data_qs[0]
         else:
             return None
@@ -186,7 +185,7 @@ class Poll(models.Model):
             elif self.expire_date <= datetime.datetime.now():
                 return True
     
-    def vote(self, choice, user, ip):
+    def vote(self, choice, user, poll_choice_data_id, ip):
         """
         Vote on a poll.
         
@@ -197,7 +196,7 @@ class Poll(models.Model):
         :param user:   The user who voted.
         :type user:    A Django ``User`` instance
         """
-        if not self.user_can_vote(user, ip):
+        if not self.user_can_vote(user, poll_choice_data_id, ip):
             raise AlreadyVoted()
         
         if self.is_expired():
@@ -225,7 +224,8 @@ class Poll(models.Model):
         selected_choice.save()
         self.total_votes += 1
         self.save()
-
+        
+        return poll_choice_data
 
 class PollChoice(models.Model):
     """

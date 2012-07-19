@@ -1,12 +1,16 @@
 """Request handling code for pollit"""
 import datetime
+import hashlib
 from django.conf import settings
-from django.http import HttpResponseRedirect, Http404
+from django.http import Http404
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 
-from models import Poll, PollChoiceData, PollExpired
-from settings import AUTHENTICATION_REQUIRED, CHECK_FOR_BOTS
+from models import Poll, PollExpired
+from settings import AUTHENTICATION_REQUIRED, CHECK_FOR_BOTS, \
+            POLL_CHOICE_DATA_COOKIE_MAX_AGE, COOKIE_DOMAIN, \
+            COOKIES_ENABLED_KEY, COOKIES_ENABLED_MAX_AGE
+            
 MULTIPLE_SITES = getattr(settings, 'POLLIT_MULTIPLE_SITES', False)
 
 def index(request, count=10, template_name="pollit/index.html"):
@@ -55,19 +59,37 @@ def detail(request, year, month, day, slug, template_name="pollit/detail.html"):
     except Poll.DoesNotExist, Poll.MultipleItemsReturned:
         raise Http404
     ip = get_client_ip(request)
-    errors = []
-    # If user is logged in and has not voted
-
-    if 'choice' in request.POST and not bot_detection and \
-            poll.user_can_vote(request.user, ip):
-        try:
-            poll.vote(request.POST['choice'], request.user, ip)
-            return HttpResponseRedirect(poll.get_absolute_results_url())
-        except PollExpired:
-            errors.append('The poll has expired.')
+    poll_choice_data_id = get_poll_choice_id_from_cookies(poll, request.COOKIES)
     
-    poll_choice = poll.get_poll_choice(request.user, ip)
-    return render_to_response(template_name,
+    errors = []
+    poll_choice = None
+    cookies_enabled = test_cookies_enabled(request.COOKIES)
+    
+    if 'choice' in request.POST and not bot_detection:
+        if cookies_enabled and poll.user_can_vote(request.user, poll_choice_data_id, ip):
+            try:
+                poll_choice = poll.vote(request.POST['choice'], request.user, 
+                                        poll_choice_data_id, ip)
+                # This is the same render to response as results. Cannot redirect because
+                # we need to set a cookie on the users browser. Plus we already have 
+                # everything queried might as well use it
+                response = render_to_response('pollit/results.html',
+                                  {'poll': poll,
+                                  'has_voted': poll_choice is not None,
+                                  'user_choice': poll_choice},
+                                  context_instance=RequestContext(request))
+                response.set_cookie(get_poll_key(poll), poll_choice.id, 
+                                    max_age=POLL_CHOICE_DATA_COOKIE_MAX_AGE,
+                                    domain=COOKIE_DOMAIN)
+                return response
+            except PollExpired:
+                errors.append('The poll has expired.')
+        elif not cookies_enabled:
+            errors.append('Cookies must be enabled to vote.')
+
+    poll_choice = poll.get_poll_choice(request.user, poll_choice_data_id, ip)
+    
+    response = render_to_response(template_name,
                               {'poll': poll,
                                'has_voted': (poll_choice is not None),
                                'user_choice': poll_choice,
@@ -75,7 +97,9 @@ def detail(request, year, month, day, slug, template_name="pollit/detail.html"):
                                'must_login_to_vote':AUTHENTICATION_REQUIRED and \
                                         not request.user.is_authenticated()},
                               context_instance=RequestContext(request))
-
+    add_cookies_enabled_test(response, request.COOKIES)
+    return response
+    
 def results_old(request, year, month, slug, template_name="pollit/results.html"):
     """A backwards-compatible way to handle the old urls"""
     return results(request, year, month, None, slug, template_name)
@@ -101,7 +125,8 @@ def results(request, year, month, day, slug, template_name="pollit/results.html"
         raise Http404
     
     ip = get_client_ip(request)
-    poll_choice = poll.get_poll_choice(request.user, ip)
+    poll_choice_id = get_poll_choice_id_from_cookies(poll, request.COOKIES)
+    poll_choice = poll.get_poll_choice(request.user, poll_choice_id, ip)
    
     return render_to_response(template_name,
                               {'poll': poll,
@@ -110,10 +135,40 @@ def results(request, year, month, day, slug, template_name="pollit/results.html"
                               context_instance=RequestContext(request))
 
 def get_client_ip(request):
+    """ Retrieve the client IP """
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
         ip = x_forwarded_for.split(',')[0]
     else:
         ip = request.META.get('REMOTE_ADDR')
     return ip
+
+def get_poll_choice_id_from_cookies(poll, cookies):
+    """ Extract a poll from the cookies. """
+    poll_key = get_poll_key(poll)
+    poll_choice_data_id = cookies.get(poll_key, None)
+    return poll_choice_data_id
+
+def get_poll_key(poll):
+    """ Common method for creating what the poll key should be from
+    the poll data. Note this should be unique for all polls """
+    return hashlib.sha224(poll.get_absolute_url()).hexdigest()
+
+def add_cookies_enabled_test(response, cookies):
+    """ Add cookies enabled cookie onto the response, if its not already
+    there """
     
+    # If authenticaten is required don't do anything
+    if AUTHENTICATION_REQUIRED:
+        return 
+    if not cookies.get(COOKIES_ENABLED_KEY, None):
+        response.set_cookie(COOKIES_ENABLED_KEY, 'True', 
+                                max_age=COOKIES_ENABLED_MAX_AGE,
+                                domain=COOKIE_DOMAIN)
+        
+def test_cookies_enabled(cookies):
+    """ Test to make sure the cookies enabled cookie is set """
+    # We know cookies are enabled if they have to be logged in
+    if AUTHENTICATION_REQUIRED:
+        return True
+    return cookies.get(COOKIES_ENABLED_KEY, None) != None
