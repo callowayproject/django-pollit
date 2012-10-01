@@ -1,3 +1,7 @@
+<style>
+    .polls_required_field {display:None}
+</style>
+
 {% if poll.is_expired %}
 <div id="note">This poll is now closed</div>
 {% endif %}
@@ -16,6 +20,8 @@
     </ul>
 {% else %}
     {% if not poll.is_expired %}<form action="." method="POST"> {% endif %}
+        <input type='text' name='email' class='polls_required_field' value='valid_email'/>
+        <input type='text' name='username' class='polls_required_field'/>
         {% for choice in poll.pollchoice_set.all %}
             <input type="radio" name="choice" id="choice{{ forloop.counter }}" value="{{ choice.id }}" />
             <label for="choice{{ forloop.counter }}">{{ choice.choice }}</label><br />
@@ -23,10 +29,10 @@
 		{% if poll.is_expired %}
 			<p><em>This poll is now closed.</em>See the <a href="{{ poll.get_absolute_results_url }}">results.</a></p>
 		{% else %}
-	        {% if user.is_authenticated %}
-	            <p><input type="submit" value="Vote"></p>
+	        {% if must_login_to_vote %}
+	            <p><em>You must be logged in to vote!</em></p>
 	        {% else %}
-	            <p><em>You must be logged in to vote!</em>
+	           <p><input type="submit" value="Vote"></p>
 	        {% endif %}
         {% endif %}
    {% if not poll.is_expired %}</form>{% endif %}
